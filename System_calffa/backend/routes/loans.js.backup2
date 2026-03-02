@@ -1,0 +1,635 @@
+const express = require('express');
+const router = express.Router();
+const pool = require('../db');
+
+// Loan type limits
+const LOAN_LIMITS = {
+  agricultural: 5000,
+  provident: 3000,
+  educational: 3000
+};
+
+const INTEREST_RATE = 1.00; // Fixed 1% interest
+const PAYMENT_TERM_MONTHS = 6; // Fixed 6 months
+
+// Helper function to calculate due date (6 months from approval)
+const calculateDueDate = (approvalDate) => {
+  const date = new Date(approvalDate);
+  date.setMonth(date.getMonth() + 6);
+  return date.toISOString().split('T')[0];
+};
+
+// Helper function to check if farmer can apply for loan
+const canApplyForLoan = async (farmerId) => {
+  // Check for unsettled loans
+  const [unsettledLoans] = await pool.execute(
+    `SELECT id FROM loans 
+     WHERE farmer_id = ? 
+     AND status IN ('pending', 'approved', 'active', 'overdue')`,
+    [farmerId]
+  );
+  
+  if (unsettledLoans.length > 0) {
+    return { allowed: false, reason: 'You have an unsettled loan. Please complete your existing loan before applying for a new one.' };
+  }
+  
+  // Check if farmer already had an APPROVED loan this year (rejected loans don't count)
+  const currentYear = new Date().getFullYear();
+  const [yearlyLoans] = await pool.execute(
+    `SELECT id FROM loans 
+     WHERE farmer_id = ? 
+     AND YEAR(application_date) = ?
+     AND status IN ('approved', 'active', 'paid', 'overdue')`,
+    [farmerId, currentYear]
+  );
+  
+  if (yearlyLoans.length > 0) {
+    return { allowed: false, reason: 'You have already availed a loan this year. Each farmer can only apply once per year.' };
+  }
+  
+  return { allowed: true };
+};
+
+// GET /api/loans - Get all loans with filtering
+router.get('/', async (req, res) => {
+  try {
+    const { farmer_id, status, start_date, end_date, limit = 100 } = req.query;
+    
+    let query = `
+      SELECT 
+        l.*,
+        f.full_name,
+        f.reference_number,
+        a.full_name as approved_by_name
+      FROM loans l
+      JOIN farmers f ON l.farmer_id = f.id
+      LEFT JOIN farmers a ON l.approved_by = a.id
+      WHERE 1=1
+    `;
+    const params = [];
+    
+    if (farmer_id) {
+      query += ' AND l.farmer_id = ?';
+      params.push(farmer_id);
+    }
+    
+    if (status) {
+      query += ' AND l.status = ?';
+      params.push(status);
+    }
+    
+    if (start_date) {
+      query += ' AND l.application_date >= ?';
+      params.push(start_date);
+    }
+    
+    if (end_date) {
+      query += ' AND l.application_date <= ?';
+      params.push(end_date);
+    }
+    
+    query += ' ORDER BY l.application_date DESC LIMIT ?';
+    params.push(parseInt(limit));
+    
+    const [loans] = await pool.execute(query, params);
+    res.json({ success: true, loans });
+  } catch (error) {
+    console.error('Error fetching loans:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch loans' });
+  }
+});
+
+// GET /api/loans/eligibility/:farmerId - Check loan eligibility
+router.get('/eligibility/:farmerId', async (req, res) => {
+  try {
+    const { farmerId } = req.params;
+    const eligibility = await canApplyForLoan(farmerId);
+    res.json({ success: true, ...eligibility });
+  } catch (error) {
+    console.error('Error checking eligibility:', error);
+    res.status(500).json({ success: false, message: 'Failed to check eligibility' });
+  }
+});
+
+// GET /api/loans/farmer/:farmerId - Get loans for specific farmer
+router.get('/farmer/:farmerId', async (req, res) => {
+  try {
+    const { farmerId } = req.params;
+    
+    const [loans] = await pool.execute(
+      `SELECT * FROM loans 
+       WHERE farmer_id = ? 
+       ORDER BY application_date DESC`,
+      [farmerId]
+    );
+    
+    res.json({ success: true, loans });
+  } catch (error) {
+    console.error('Error fetching farmer loans:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch loans' });
+  }
+});
+
+// GET /api/loans/:id - Get specific loan details
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [loans] = await pool.execute(
+      `SELECT 
+        l.*,
+        f.full_name,
+        f.reference_number,
+        a.full_name as approved_by_name
+       FROM loans l
+       JOIN farmers f ON l.farmer_id = f.id
+       LEFT JOIN farmers a ON l.approved_by = a.id
+       WHERE l.id = ?`,
+      [id]
+    );
+    
+    if (loans.length === 0) {
+      return res.status(404).json({ success: false, message: 'Loan not found' });
+    }
+    
+    // Get payment history
+    const [payments] = await pool.execute(
+      `SELECT * FROM loan_payments 
+       WHERE loan_id = ? 
+       ORDER BY payment_date DESC`,
+      [id]
+    );
+    
+    res.json({ 
+      success: true, 
+      loan: loans[0],
+      payments 
+    });
+  } catch (error) {
+    console.error('Error fetching loan details:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch loan details' });
+  }
+});
+
+// POST /api/loans - Create new loan application
+router.post('/', async (req, res) => {
+  try {
+    const { 
+      farmer_id, 
+      loan_amount, 
+      loan_type,
+      loan_purpose,
+      remarks 
+    } = req.body;
+    
+    console.log('Received loan application:', req.body);
+    
+    // Validate required fields
+    if (!farmer_id || !loan_amount || !loan_type) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: farmer_id, loan_amount, loan_type' 
+      });
+    }
+    
+    // Validate loan type
+    if (!['agricultural', 'provident', 'educational'].includes(loan_type)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid loan type. Must be agricultural, provident, or educational' 
+      });
+    }
+    
+    // Validate loan amount against limits
+    if (parseFloat(loan_amount) > LOAN_LIMITS[loan_type]) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Loan amount exceeds maximum limit of ₱${LOAN_LIMITS[loan_type].toLocaleString()} for ${loan_type} loan` 
+      });
+    }
+    
+    // Check eligibility
+    const eligibility = await canApplyForLoan(farmer_id);
+    if (!eligibility.allowed) {
+      return res.status(400).json({ 
+        success: false, 
+        message: eligibility.reason 
+      });
+    }
+    
+    const application_date = new Date().toISOString().split('T')[0];
+    
+    // Calculate total amount with interest (1%)
+    const principal = parseFloat(loan_amount);
+    const interestAmount = principal * (INTEREST_RATE / 100);
+    const totalAmount = principal + interestAmount;
+    
+    const [result] = await pool.execute(
+      `INSERT INTO loans 
+       (farmer_id, loan_amount, loan_type, interest_rate, loan_purpose, application_date, 
+        remaining_balance, payment_term, remarks, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [
+        farmer_id, 
+        totalAmount, // Store total amount (principal + interest)
+        loan_type,
+        INTEREST_RATE,
+        loan_purpose || `${loan_type} loan`,
+        application_date,
+        totalAmount, // Initially, remaining balance equals total amount
+        PAYMENT_TERM_MONTHS,
+        remarks || null
+      ]
+    );
+    
+    // Log activity
+    try {
+      const [farmer] = await pool.execute('SELECT full_name FROM farmers WHERE id = ?', [farmer_id]);
+      await pool.execute(
+        `INSERT INTO activity_logs (farmer_id, activity_type, activity_description, metadata)
+         VALUES (?, 'loan_application', ?, ?)`,
+        [
+          farmer_id, 
+          `${farmer[0]?.full_name} applied for ${loan_type} loan of ₱${principal.toLocaleString()}`,
+          JSON.stringify({ 
+            loan_id: result.insertId, 
+            loan_type,
+            principal,
+            interest: interestAmount,
+            total: totalAmount,
+            purpose: loan_purpose 
+          })
+        ]
+      );
+    } catch (logErr) {
+      console.error('Error logging loan application:', logErr);
+    }
+    
+    res.json({ 
+      success: true, 
+      id: result.insertId, 
+      message: 'Loan application submitted successfully',
+      details: {
+        principal,
+        interest: interestAmount,
+        total: totalAmount,
+        payment_term: PAYMENT_TERM_MONTHS
+      }
+    });
+  } catch (error) {
+    console.error('Error creating loan:', error);
+    console.error('Error details:', error.message, error.stack);
+    res.status(500).json({ success: false, message: 'Failed to create loan application', error: error.message });
+  }
+});
+
+// PUT /api/loans/:id - Update pending loan
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { loan_amount, loan_type, loan_purpose } = req.body;
+    
+    // First check if loan exists and is pending
+    const [loans] = await pool.execute(
+      'SELECT * FROM loans WHERE id = ?',
+      [id]
+    );
+    
+    if (loans.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Loan not found' 
+      });
+    }
+    
+    const loan = loans[0];
+    
+    // Only allow editing pending loans
+    if (loan.status !== 'pending') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Only pending loans can be edited' 
+      });
+    }
+    
+    // Validate loan type
+    if (!['agricultural', 'provident', 'educational'].includes(loan_type)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid loan type. Must be agricultural, provident, or educational' 
+      });
+    }
+    
+    // Validate loan amount against limits
+    if (parseFloat(loan_amount) > LOAN_LIMITS[loan_type]) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Loan amount exceeds maximum limit of ₱${LOAN_LIMITS[loan_type].toLocaleString()} for ${loan_type} loan` 
+      });
+    }
+    
+    // Calculate total amount with interest (1%)
+    const principal = parseFloat(loan_amount);
+    const interestAmount = principal * (INTEREST_RATE / 100);
+    const totalAmount = principal + interestAmount;
+    
+    // Update the loan
+    await pool.execute(
+      `UPDATE loans 
+       SET loan_amount = ?, loan_type = ?, loan_purpose = ?, remaining_balance = ?
+       WHERE id = ?`,
+      [totalAmount, loan_type, loan_purpose || `${loan_type} loan`, totalAmount, id]
+    );
+    
+    // Log activity
+    try {
+      await pool.execute(
+        `INSERT INTO activity_logs (farmer_id, activity_type, activity_description, metadata)
+         VALUES (?, 'loan_update', ?, ?)`,
+        [
+          loan.farmer_id, 
+          `Loan application updated to ${loan_type} loan of ₱${principal.toLocaleString()}`,
+          JSON.stringify({ 
+            loan_id: id, 
+            loan_type,
+            principal,
+            interest: interestAmount,
+            total: totalAmount,
+            purpose: loan_purpose 
+          })
+        ]
+      );
+    } catch (logErr) {
+      console.error('Error logging loan update:', logErr);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Loan updated successfully',
+      details: {
+        principal,
+        interest: interestAmount,
+        total: totalAmount,
+        payment_term: PAYMENT_TERM_MONTHS
+      }
+    });
+  } catch (error) {
+    console.error('Error updating loan:', error);
+    res.status(500).json({ success: false, message: 'Failed to update loan', error: error.message });
+  }
+});
+
+// PUT /api/loans/:id/approve - Approve loan
+router.put('/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approved_by, remarks } = req.body;
+    
+    console.log('Approving loan:', { id, approved_by, remarks });
+    
+    const approval_date = new Date().toISOString().split('T')[0];
+    const due_date = calculateDueDate(approval_date);
+    
+    await pool.execute(
+      `UPDATE loans 
+       SET status = 'approved', approval_date = ?, approved_by = ?, due_date = ?, remarks = ?
+       WHERE id = ?`,
+      [approval_date, approved_by || null, due_date, remarks || null, id]
+    );
+    
+    // Get loan details for activity log
+    const [loan] = await pool.execute(
+      `SELECT l.*, f.full_name FROM loans l 
+       JOIN farmers f ON l.farmer_id = f.id 
+       WHERE l.id = ?`,
+      [id]
+    );
+    
+    // Log approval activity
+    if (loan.length > 0) {
+      try {
+        await pool.execute(
+          `INSERT INTO activity_logs (farmer_id, activity_type, activity_description, metadata)
+           VALUES (?, 'loan_approval', ?, ?)`,
+          [
+            loan[0].farmer_id, 
+            `Loan application of ${loan[0].full_name} for ₱${loan[0].loan_amount} was approved`,
+            JSON.stringify({ loan_id: id, amount: loan[0].loan_amount, approved_by, due_date })
+          ]
+        );
+      } catch (logErr) {
+        console.error('Error logging loan approval:', logErr);
+      }
+    }
+    
+    res.json({ success: true, message: 'Loan approved successfully. Due date: ' + due_date });
+  } catch (error) {
+    console.error('Error approving loan:', error);
+    res.status(500).json({ success: false, message: 'Failed to approve loan', error: error.message });
+  }
+});
+
+// PUT /api/loans/:id/reject - Reject loan
+router.put('/:id/reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejection_reason } = req.body;
+    
+    const rejectionDate = new Date().toISOString().split('T')[0];
+    
+    await pool.execute(
+      `UPDATE loans 
+       SET status = 'rejected', rejection_reason = ?, rejection_date = ?
+       WHERE id = ?`,
+      [rejection_reason, rejectionDate, id]
+    );
+    
+    // Get loan details for activity log
+    const [loan] = await pool.execute(
+      `SELECT l.*, f.full_name FROM loans l 
+       JOIN farmers f ON l.farmer_id = f.id 
+       WHERE l.id = ?`,
+      [id]
+    );
+    
+    // Log rejection activity
+    if (loan.length > 0) {
+      try {
+        await pool.execute(
+          `INSERT INTO activity_logs (farmer_id, activity_type, activity_description, metadata)
+           VALUES (?, 'loan_rejection', ?, ?)`,
+          [
+            loan[0].farmer_id, 
+            `Loan application of ${loan[0].full_name} for ₱${loan[0].loan_amount} was rejected`,
+            JSON.stringify({ loan_id: id, reason: rejection_reason })
+          ]
+        );
+      } catch (logErr) {
+        console.error('Error logging loan rejection:', logErr);
+      }
+    }
+    
+    res.json({ success: true, message: 'Loan rejected' });
+  } catch (error) {
+    console.error('Error rejecting loan:', error);
+    res.status(500).json({ success: false, message: 'Failed to reject loan' });
+  }
+});
+
+// POST /api/loans/:id/payment - Record loan payment
+router.post('/:id/payment', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { payment_date, amount, payment_method, reference_number, remarks, recorded_by } = req.body;
+    
+    console.log('Payment request:', { id, payment_date, amount, payment_method, recorded_by });
+    
+    if (!payment_date || !amount) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: payment_date, amount' 
+      });
+    }
+    
+    // Get current loan details
+    const [loan] = await pool.execute('SELECT * FROM loans WHERE id = ?', [id]);
+    
+    if (loan.length === 0) {
+      return res.status(404).json({ success: false, message: 'Loan not found' });
+    }
+    
+    console.log('Current loan:', { 
+      id: loan[0].id, 
+      amount: loan[0].loan_amount, 
+      total_paid: loan[0].total_paid,
+      remaining_balance: loan[0].remaining_balance 
+    });
+    
+    // Record payment
+    await pool.execute(
+      `INSERT INTO loan_payments 
+       (loan_id, payment_date, amount, payment_method, remarks, recorded_by)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, payment_date, amount, payment_method || 'cash', remarks || null, recorded_by || null]
+    );
+    
+    // Update loan totals
+    const new_total_paid = parseFloat(loan[0].total_paid || 0) + parseFloat(amount);
+    const new_remaining_balance = parseFloat(loan[0].loan_amount) - new_total_paid;
+    const new_status = new_remaining_balance <= 0 ? 'paid' : 'active';
+    
+    // Always update last_payment_date for any payment
+    // Only set paid_date when loan is fully paid
+    if (new_status === 'paid') {
+      await pool.execute(
+        `UPDATE loans 
+         SET total_paid = ?, remaining_balance = ?, status = ?, last_payment_date = ?, paid_date = ?
+         WHERE id = ?`,
+        [new_total_paid, Math.max(0, new_remaining_balance), new_status, payment_date, payment_date, id]
+      );
+    } else {
+      // Partial payment - update last_payment_date but not paid_date
+      await pool.execute(
+        `UPDATE loans 
+         SET total_paid = ?, remaining_balance = ?, status = ?, last_payment_date = ?
+         WHERE id = ?`,
+        [new_total_paid, Math.max(0, new_remaining_balance), new_status, payment_date, id]
+      );
+    }
+    
+    // Log payment activity
+    try {
+      const [farmer] = await pool.execute('SELECT full_name FROM farmers WHERE id = ?', [loan[0].farmer_id]);
+      await pool.execute(
+        `INSERT INTO activity_logs (farmer_id, activity_type, activity_description, metadata)
+         VALUES (?, 'loan_payment', ?, ?)`,
+        [
+          loan[0].farmer_id, 
+          `${farmer[0]?.full_name} made a loan payment of ₱${amount}`,
+          JSON.stringify({ loan_id: id, amount, remaining_balance: new_remaining_balance })
+        ]
+      );
+    } catch (logErr) {
+      console.error('Error logging loan payment:', logErr);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Payment recorded successfully',
+      remaining_balance: Math.max(0, new_remaining_balance),
+      status: new_status
+    });
+  } catch (error) {
+    console.error('Error recording payment:', error);
+    console.error('Error details:', error.message, error.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to record payment',
+      error: error.message 
+    });
+  }
+});
+
+// GET /api/loans/stats/summary - Get loan statistics
+router.get('/stats/summary', async (req, res) => {
+  try {
+    const [stats] = await pool.execute(`
+      SELECT 
+        COUNT(*) as total_loans,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_count,
+        SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_count,
+        SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) as overdue_count,
+        SUM(loan_amount) as total_amount_loaned,
+        SUM(remaining_balance) as total_outstanding,
+        SUM(total_paid) as total_collected,
+        SUM(CASE WHEN loan_type = 'agricultural' THEN 1 ELSE 0 END) as agricultural_count,
+        SUM(CASE WHEN loan_type = 'provident' THEN 1 ELSE 0 END) as provident_count,
+        SUM(CASE WHEN loan_type = 'educational' THEN 1 ELSE 0 END) as educational_count
+      FROM loans
+    `);
+    
+    res.json({ success: true, stats: stats[0] });
+  } catch (error) {
+    console.error('Error fetching loan stats:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch statistics' });
+  }
+});
+
+// Get payment history for Financial Overview
+router.get('/loan-payments/history', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        lp.id,
+        lp.amount,
+        lp.payment_date,
+        lp.payment_method,
+        l.id as loan_id,
+        l.loan_type,
+        l.status as loan_status,
+        l.loan_amount,
+        f.full_name as farmer_name,
+        l.remaining_balance,
+        CASE 
+          WHEN lp.payment_date = l.paid_date THEN 0
+          ELSE l.remaining_balance
+        END as remaining_after_payment
+      FROM loan_payments lp
+      INNER JOIN loans l ON lp.loan_id = l.id
+      INNER JOIN farmers f ON l.farmer_id = f.id
+      ORDER BY lp.payment_date DESC, lp.id DESC
+      LIMIT 100
+    `;
+    
+    const [payments] = await pool.execute(query);
+    
+    res.json({ success: true, payments });
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch payment history' });
+  }
+});
+
+module.exports = router;

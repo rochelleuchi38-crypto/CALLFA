@@ -1,0 +1,446 @@
+/**
+ * Smart Farming Dashboard - Backdrop Theme System
+ * 
+ * A textured green surface theme resembling a chalkboard or painted farm wall.
+ * Designed for rice agriculture dashboards with organic, earthy aesthetics.
+ */
+
+:root {
+  /* Base Colors - Deep Natural Green */
+  --backdrop-base: #166534;              /* Primary deep natural green */
+  --backdrop-base-dark: #0d4a26;        /* Darker variant for depth */
+  --backdrop-base-light: #1a7a3e;       /* Lighter variant for highlights */
+  
+  /* Light Mode Variant */
+  --backdrop-light-base: #d1fae5;       /* Pale green base */
+  --backdrop-light-accent: #a7f3d0;     /* Soft mint accent */
+  --backdrop-light-beige: #fef3c7;      /* Soft beige texture */
+  
+  /* Dark Mode Variant */
+  --backdrop-dark-base: #064e3b;        /* Deep forest green base */
+  --backdrop-dark-accent: #065f46;      /* Slightly lighter forest */
+  --backdrop-dark-gold: #fbbf24;        /* Golden rice accents */
+  
+  /* Organic Texture Colors */
+  --mottle-green-1: rgba(34, 139, 34, 0.12);    /* Forest green mottling */
+  --mottle-green-2: rgba(22, 101, 52, 0.08);     /* Base green mottling */
+  --mottle-brown-1: rgba(139, 69, 19, 0.06);     /* Soil brown stains */
+  --mottle-brown-2: rgba(160, 82, 45, 0.04);     /* Sienna stains */
+  --mottle-yellow: rgba(250, 204, 21, 0.05);      /* Sun-faded paint */
+  --mottle-gold: rgba(251, 191, 36, 0.08);        /* Golden rice accents */
+  
+  /* Grain Texture */
+  --grain-dark: rgba(0, 0, 0, 0.03);              /* Dark grain */
+  --grain-light: rgba(255, 255, 255, 0.02);       /* Light grain */
+  --grain-medium: rgba(0, 0, 0, 0.015);           /* Medium grain */
+  
+  /* Canvas/Chalkboard Texture */
+  --canvas-texture: rgba(0, 0, 0, 0.02);
+}
+
+/* ============================================
+   DEFAULT BACKDROP THEME (Standard Mode)
+   ============================================ */
+
+.backdrop-theme {
+  position: relative;
+  background:
+    /* Base gradient - deep natural green */
+    linear-gradient(135deg, var(--backdrop-base) 0%, var(--backdrop-base-dark) 50%, var(--backdrop-base-light) 100%),
+    
+    /* Large organic mottling - rice field patterns */
+    radial-gradient(ellipse 800px 400px at 15% 25%, var(--mottle-green-1) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 300px at 85% 75%, var(--mottle-green-2) 0%, transparent 50%),
+    radial-gradient(ellipse 500px 250px at 50% 50%, var(--mottle-green-1) 0%, transparent 45%),
+    
+    /* Soil stains and earth tones */
+    radial-gradient(ellipse 400px 200px at 30% 70%, var(--mottle-brown-1) 0%, transparent 55%),
+    radial-gradient(ellipse 350px 180px at 70% 30%, var(--mottle-brown-2) 0%, transparent 50%),
+    radial-gradient(ellipse 300px 150px at 20% 60%, var(--mottle-brown-1) 0%, transparent 45%),
+    
+    /* Sun-faded paint effects */
+    radial-gradient(ellipse 450px 220px at 60% 40%, var(--mottle-yellow) 0%, transparent 50%),
+    radial-gradient(ellipse 380px 190px at 40% 80%, var(--mottle-yellow) 0%, transparent 45%),
+    
+    /* Rice leaf patterns - organic shapes */
+    radial-gradient(ellipse 200px 80px at 25% 45%, rgba(34, 139, 34, 0.04) 0%, transparent 40%),
+    radial-gradient(ellipse 180px 70px at 75% 55%, rgba(22, 101, 52, 0.03) 0%, transparent 35%),
+    radial-gradient(ellipse 160px 65px at 45% 25%, rgba(34, 139, 34, 0.03) 0%, transparent 30%),
+    
+    /* Soft canvas/grain texture for depth */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--grain-dark) 2px,
+      var(--grain-dark) 3px,
+      transparent 3px,
+      transparent 5px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      var(--grain-medium) 2px,
+      var(--grain-medium) 3px,
+      transparent 3px,
+      transparent 5px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      var(--canvas-texture),
+      var(--canvas-texture) 1px,
+      transparent 1px,
+      transparent 8px
+    );
+  
+  background-size: 
+    100% 100%,                    /* Base gradient */
+    1200px 800px,                 /* Large mottling */
+    1000px 600px,
+    900px 500px,
+    800px 400px,                  /* Soil stains */
+    700px 350px,
+    600px 300px,
+    900px 450px,                  /* Sun-faded */
+    750px 380px,
+    400px 160px,                  /* Rice leaves */
+    360px 140px,
+    320px 130px,
+    40px 40px,                    /* Grain textures */
+    40px 40px,
+    16px 16px;                    /* Canvas texture */
+  
+  background-blend-mode: 
+    normal,
+    overlay, overlay, overlay,
+    multiply, multiply, multiply,
+    overlay, overlay,
+    normal, normal, normal,
+    normal, normal, normal;
+  
+  background-position:
+    0 0,
+    0 0, 0 0, 0 0,
+    0 0, 0 0, 0 0,
+    0 0, 0 0,
+    0 0, 0 0, 0 0,
+    0 0, 0 0, 0 0;
+  
+  opacity: 0.75; /* Optimized for dashboard - not too dark, not too bright */
+}
+
+/* Subtle animated texture for added depth */
+.backdrop-theme::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(34, 139, 34, 0.03) 0%, transparent 50%);
+  background-size: 200px 200px;
+  animation: textureShift 20s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+@keyframes textureShift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(10px, 10px) scale(1.05); }
+}
+
+/* ============================================
+   LIGHT MODE VARIANT
+   ============================================ */
+
+.backdrop-theme-light {
+  position: relative;
+  background:
+    /* Base gradient - pale green with beige */
+    linear-gradient(135deg, var(--backdrop-light-base) 0%, #f0fdf4 50%, var(--backdrop-light-beige) 100%),
+    
+    /* Soft organic textures */
+    radial-gradient(ellipse 1000px 500px at 20% 30%, var(--backdrop-light-accent) 0%, transparent 60%),
+    radial-gradient(ellipse 800px 400px at 80% 70%, rgba(167, 243, 208, 0.4) 0%, transparent 55%),
+    radial-gradient(ellipse 600px 300px at 50% 50%, var(--backdrop-light-beige) 0%, transparent 50%),
+    
+    /* Subtle soil and earth tones */
+    radial-gradient(ellipse 500px 250px at 35% 65%, rgba(254, 243, 199, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse 450px 225px at 65% 35%, rgba(209, 250, 229, 0.5) 0%, transparent 45%),
+    
+    /* Soft grain texture */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.03) 3px,
+      rgba(255, 255, 255, 0.03) 4px,
+      transparent 4px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0.01),
+      rgba(0, 0, 0, 0.01) 1px,
+      transparent 1px,
+      transparent 10px
+    );
+  
+  background-size:
+    100% 100%,
+    1200px 800px,
+    1000px 600px,
+    800px 500px,
+    700px 400px,
+    600px 350px,
+    50px 50px,
+    20px 20px;
+  
+  background-blend-mode:
+    normal,
+    overlay, overlay, overlay,
+    multiply, multiply,
+    normal, normal;
+  
+  opacity: 0.85;
+}
+
+.backdrop-theme-light::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(167, 243, 208, 0.2) 0%, transparent 60%);
+  background-size: 300px 300px;
+  animation: textureShift 25s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* ============================================
+   DARK MODE VARIANT
+   ============================================ */
+
+.backdrop-theme-dark {
+  position: relative;
+  background:
+    /* Base gradient - deep forest green */
+    linear-gradient(135deg, var(--backdrop-dark-base) 0%, #065f46 50%, var(--backdrop-dark-accent) 100%),
+    
+    /* Golden rice accents */
+    radial-gradient(ellipse 900px 450px at 20% 25%, rgba(251, 191, 36, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 700px 350px at 80% 75%, rgba(251, 191, 36, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 500px 250px at 50% 50%, rgba(251, 191, 36, 0.06) 0%, transparent 45%),
+    
+    /* Forest green mottling */
+    radial-gradient(ellipse 800px 400px at 15% 70%, rgba(34, 139, 34, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 300px at 85% 30%, rgba(22, 101, 52, 0.08) 0%, transparent 50%),
+    
+    /* Subtle soil tones */
+    radial-gradient(ellipse 400px 200px at 30% 60%, rgba(139, 69, 19, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse 350px 175px at 70% 40%, rgba(160, 82, 45, 0.04) 0%, transparent 45%),
+    
+    /* Rice leaf patterns */
+    radial-gradient(ellipse 200px 80px at 25% 45%, rgba(34, 139, 34, 0.05) 0%, transparent 40%),
+    radial-gradient(ellipse 180px 70px at 75% 55%, rgba(251, 191, 36, 0.04) 0%, transparent 35%),
+    
+    /* Deep grain texture */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.04) 2px,
+      rgba(0, 0, 0, 0.04) 3px,
+      transparent 3px,
+      transparent 5px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0.03),
+      rgba(0, 0, 0, 0.03) 1px,
+      transparent 1px,
+      transparent 8px
+    );
+  
+  background-size:
+    100% 100%,
+    1200px 800px,
+    1000px 600px,
+    900px 500px,
+    1000px 700px,
+    800px 500px,
+    600px 350px,
+    500px 300px,
+    400px 160px,
+    360px 140px,
+    40px 40px,
+    16px 16px;
+  
+  background-blend-mode:
+    normal,
+    overlay, overlay, overlay,
+    multiply, multiply,
+    multiply, multiply,
+    normal, normal,
+    normal, normal;
+  
+  opacity: 0.8;
+}
+
+.backdrop-theme-dark::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.08) 0%, transparent 50%);
+  background-size: 250px 250px;
+  animation: textureShift 18s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ============================================
+   UTILITY CLASSES FOR SPECIFIC USE CASES
+   ============================================ */
+
+/* Dashboard Page Background */
+.backdrop-dashboard {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Login Screen Background */
+.backdrop-login {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.6; /* Slightly more subtle for login */
+}
+
+/* Sidebar Overlay */
+.backdrop-sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5; /* More subtle for sidebar */
+  mix-blend-mode: multiply;
+}
+
+/* Header Overlay */
+.backdrop-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4; /* Very subtle for header */
+  mix-blend-mode: overlay;
+}
+
+/* Welcome Banner */
+.backdrop-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Card Background (subtle backdrop for cards) */
+.backdrop-card {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%),
+    radial-gradient(ellipse 300px 150px at 50% 50%, rgba(22, 101, 52, 0.02) 0%, transparent 60%);
+  background-blend-mode: normal, overlay;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+  .backdrop-theme,
+  .backdrop-theme-light,
+  .backdrop-theme-dark {
+    background-size:
+      100% 100%,
+      800px 600px,
+      700px 500px,
+      600px 400px,
+      500px 350px,
+      450px 300px,
+      400px 250px,
+      350px 200px,
+      300px 150px,
+      250px 120px,
+      200px 100px,
+      30px 30px,
+      30px 30px,
+      12px 12px;
+    opacity: 0.7; /* Slightly more subtle on mobile */
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY & PERFORMANCE
+   ============================================ */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-theme::before,
+  .backdrop-theme-light::before,
+  .backdrop-theme-dark::before {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .backdrop-theme,
+  .backdrop-theme-light,
+  .backdrop-theme-dark {
+    opacity: 0.5; /* More subtle in high contrast */
+  }
+}
+
+/* Print styles - remove backdrop for printing */
+@media print {
+  .backdrop-theme,
+  .backdrop-theme-light,
+  .backdrop-theme-dark,
+  .backdrop-dashboard,
+  .backdrop-login,
+  .backdrop-sidebar,
+  .backdrop-header,
+  .backdrop-banner {
+    display: none;
+  }
+}
+
