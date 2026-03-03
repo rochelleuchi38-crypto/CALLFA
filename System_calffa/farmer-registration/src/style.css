@@ -310,7 +310,7 @@ body.backdrop-theme-dark::before {
 
 /* Footer Styles */
 .app-footer {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #49a96d, #2f8f53);
   color: white;
   padding: 2rem 0;
   border-top: 1px solid rgba(255, 255, 255, 0.1);

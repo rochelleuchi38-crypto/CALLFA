@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="announcement-page">
     <section class="header-card">
       <div>
@@ -65,7 +65,7 @@
 
             <div class="ig-actions">
               <span class="action-right">
-                <span class="bookmark">🔖</span>
+                <span class="bookmark">??</span>
                 <button
                   v-if="canDeleteAnnouncement"
                   class="icon-btn delete-btn"
@@ -73,7 +73,7 @@
                   title="Delete announcement"
                   @click="openDeleteModal(item.id)"
                 >
-                  🗑
+                  ??
                 </button>
               </span>
             </div>
@@ -391,7 +391,7 @@ onMounted(fetchAnnouncements)
   gap: 18px;
   padding: 24px;
   border-radius: 20px;
-  background: linear-gradient(130deg, #3f8f5f 0%, #56ab75 48%, #5ab889 100%);
+  background: linear-gradient(130deg, #4aa96d 0%, #3fa764 48%, #2f8f53 100%);
   color: #f4fff7;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 24px 48px rgba(21, 128, 61, 0.22);
@@ -568,7 +568,14 @@ h1 { margin: 0; font-size: clamp(2rem, 2.2vw, 2.9rem); }
   font-weight: 700;
   font-size: 1rem;
 }
-.btn.primary { background: #2f8d54; color: #fff; }
+.btn.primary {
+  background: linear-gradient(130deg, #4aa96d 0%, #2f8f53 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(47, 143, 83, 0.3);
+}
+.btn.primary:hover {
+  background: linear-gradient(130deg, #3fa764 0%, #2a7f49 100%);
+}
 .header-btn {
   min-width: 170px;
   min-height: 56px;
@@ -618,3 +625,4 @@ h1 { margin: 0; font-size: clamp(2rem, 2.2vw, 2.9rem); }
   }
 }
 </style>
+

@@ -2,17 +2,6 @@
   <header class="top-header">
     <div class="backdrop-header backdrop-theme"></div>
     <div class="header-content">
-      <!-- Left: CALFFA Logo -->
-      <div class="logo-section">
-        <div class="logo-container">
-          <div class="logo-icon">🌾</div>
-          <div class="logo-text-container">
-            <div class="calffa-logo">CALFFA</div>
-            <span class="logo-text">Smart Farming Solutions</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Center: System Status & Timestamp -->
       <div class="system-info">
         <div class="status-indicator" :class="{ active: systemStatus }">
@@ -676,7 +665,6 @@ onMounted(() => {
   justify-content: center;
   gap: 16px;
   padding: 0 24px;
-  border-left: 1px solid #e5e7eb;
   border-right: 1px solid #e5e7eb;
   flex-grow: 1;
 }
@@ -1240,4 +1228,5 @@ onMounted(() => {
   }
 }
 </style>
+
 

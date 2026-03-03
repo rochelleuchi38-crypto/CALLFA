@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="approval-page">
     <section class="header-card">
       <div>
@@ -247,7 +247,7 @@ onMounted(fetchPendingNews)
   padding: 24px;
   border-radius: 20px;
   background:
-    linear-gradient(130deg, #3f8f5f 0%, #56ab75 48%, #5ab889 100%);
+    linear-gradient(130deg, #4aa96d 0%, #3fa764 48%, #2f8f53 100%);
   color: #f4fff7;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 24px 48px rgba(21, 128, 61, 0.22);
@@ -352,3 +352,4 @@ h1 {
   }
 }
 </style>
+

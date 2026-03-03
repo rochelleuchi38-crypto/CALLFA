@@ -387,7 +387,7 @@ const renderBarangayChart = () => {
       datasets: [{
         label: 'Number of Members',
         data: sortedBarangays.map(([, count]) => count),
-        backgroundColor: '#7C3AED',
+        backgroundColor: '#2F8F53',
         borderRadius: 4
       }]
     },
@@ -500,7 +500,7 @@ onMounted(async () => {
 <style scoped>
 .dashboard-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #49a96d 0%, #2f8f53 100%);
   padding: 24px;
 }
 
@@ -531,7 +531,7 @@ onMounted(async () => {
   font-weight: 800;
   color: #1f2937;
   margin: 0 0 8px 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #53b476 0%, #2f8f53 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -608,8 +608,8 @@ onMounted(async () => {
 }
 
 .stat-primary .stat-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #61c286 0%, #2f8f53 100%);
+  box-shadow: 0 4px 12px rgba(47, 143, 83, 0.3);
 }
 
 .stat-pending .stat-icon {
@@ -638,8 +638,8 @@ onMounted(async () => {
 }
 
 .stat-loan .stat-icon {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  background: linear-gradient(135deg, #70c993 0%, #3fa764 100%);
+  box-shadow: 0 4px 12px rgba(63, 167, 100, 0.3);
 }
 
 .stat-card {
@@ -742,13 +742,13 @@ onMounted(async () => {
 }
 
 .chart-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #53b476 0%, #2f8f53 100%);
   color: white;
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(47, 143, 83, 0.3);
 }
 
 canvas {
@@ -796,11 +796,11 @@ canvas {
 }
 
 .action-primary {
-  border-left-color: #667eea;
+  border-left-color: #2f8f53;
 }
 
 .action-primary .action-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #53b476 0%, #2f8f53 100%);
 }
 
 .action-success {
