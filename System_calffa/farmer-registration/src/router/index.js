@@ -41,6 +41,7 @@ const routes = [
       
       // Insights Routes
       { path: 'news', component: () => import('../views/NewsPage.vue') },
+      { path: 'president-news-approvals', component: () => import('../views/PresidentNewsApprovalsPage.vue'), meta: { requiresPresident: true } },
       { path: 'announcement', component: () => import('../views/AnnouncementPage.vue') },
       
       // Members Route (accessible to all)
@@ -123,6 +124,14 @@ router.beforeEach((to, from, next) => {
   const requiresOfficer = to.meta.requiresOfficer || (to.matched.some(record => record.meta.requiresOfficer))
   if (requiresOfficer && !['president', 'treasurer', 'auditor', 'agriculturist', 'admin'].includes(userRole)) {
     alert('Access denied. Officer privileges required.')
+    next('/dashboard')
+    return
+  }
+
+  // Check if route requires president role
+  const requiresPresident = to.meta.requiresPresident || (to.matched.some(record => record.meta.requiresPresident))
+  if (requiresPresident && userRole !== 'president') {
+    alert('Access denied. President privileges required.')
     next('/dashboard')
     return
   }

@@ -15,6 +15,7 @@ const machineryRoutes = require('./routes/machinery');
 const machineryFinancialRoutes = require('./routes/machinery-financial');
 const notificationsRoutes = require('./routes/notifications');
 const farmerIncomeRoutes = require('./routes/farmer-income');
+const newsRoutes = require('./routes/news');
 const { startNotificationScheduler } = require('./scheduler/notification-scheduler');
 
 
@@ -47,6 +48,8 @@ app.use('/api/machinery-financial', machineryFinancialRoutes);
 app.use('/api/notifications', notificationsRoutes);
 // Farmer income routes
 app.use('/api/farmer-income', farmerIncomeRoutes);
+// News and announcement routes
+app.use('/api', newsRoutes);
 
 
 const PORT = process.env.PORT || 3000;
